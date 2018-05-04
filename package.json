@@ -1,0 +1,9 @@
+{
+  "name": "cartegame",
+  "version": "0.0.1",
+  "dependencies": {
+    "express": "^4.16.2",
+    "socket.io": "^2.1",
+    "ent": "^2.2.0"
+  }
+}

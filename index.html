@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test jeux pourris</title>
+
+
+    <style>
+        #space{
+            border : 1px solid red;
+            float:left;
+            margin:auto;
+            width:1200px;
+            height: 800px;
+            overflow: scroll;
+        }
+        #space_wrapper{
+            padding: 2px;
+           height: 1200px;
+            position: relative;
+        }
+
+        /*#space_wrapper div{*/
+            /*width: 10px;*/
+            /*height: 20px;*/
+            /*position: absolute;*/
+            /*border-radius: 20%;*/
+            /*color: black;*/
+            /*background-size: contain;*/
+        /*}*/
+        #chat_zone{
+            width: 500px;
+            float: right;
+            background-color: rgba(204, 204, 204, 0.99);
+            color: black;
+            overflow-y:scroll ;
+        }
+        .cards_chooser table{
+            display: table-cell;
+        }
+        tr{
+            border: 1px solid black;
+        }
+        #fightArea{
+            border: 3px solid red;
+            height: 1000px;
+        }
+        #playerOne{
+            width: 40%;
+            height : 80%;
+            border : 1px solid black;
+            float:left;
+        }
+        #playerTwo{
+            width: 40%;
+            height : 80%;
+            border : 1px solid black;
+            float:right;
+        }
+        #fightLog{
+            height: 18%;
+            border: 1px solid green;
+            position: absolute;
+            bottom: 10px;
+        }
+        #space_wrapper{
+            width: 100%;
+            height: 100%;
+        }
+        .playerTwo_life, .playerOne_life{
+            border: 1px solid green;
+            width: 100px;
+            height: 20px;
+        }
+        .playerTwo_life div, .playerOne_life div{
+            width: 100%;
+            height: 100%;
+            background-color: chartreuse;
+        }
+    </style>
+</head>
+<body>
+
+<section id="space">
+    <div id="space_wrapper">
+        <div id="cards_chooser">
+            <table>
+            <tr>
+                <th> Nom</th>
+                <th> Attribus</th>
+            </tr>
+            <tr>
+                <td class="sword attack card" id="sword">Sword</td>
+                <td class="dagger attack card" id="dagger">Dagger</td>
+                <td class="spell attack card" id="spell">Spell</td>
+                <td class="leather deff card" id="leather">Leather</td>
+                <td class="plate deff card" id="plate">Plate</td>
+                <td class="silk deff card" id="silk">Silk</td>
+
+            </tr>
+            <tr>
+                <td class="sword attack "><li>Attaque: 5</li>
+                    <li>Vitesse: 2</li>
+                    <li>Porté: 4</li>
+                </td>
+
+
+                <td class="dagger attack "><li>Attaque: 3</li>
+                    <li>Vitesse: 4</li>
+                    <li>Porté: 2</li>
+                </td>
+
+
+                <td class="spell attack "><li>Attaque: 6</li>
+                    <li>Vitesse: 1</li>
+                    <li>Porté: 4</li>
+                </td>
+                <td class="leather deff "><li>deffense: 3</li>
+                    <li>Magic deffense: 1</li>
+                    <li>Stamina: 3</li>
+                </td>
+                <td class="plate deff "><li>deffense: 4</li>
+                    <li>Magic deffense: 1</li>
+                    <li>Stamina: 4</li>
+                </td>
+                <td class="silk deff "><li>deffense: 1</li>
+                    <li>Magic deffense: 4</li>
+                    <li>Stamina: 2</li>
+                </td>
+            </tr>
+            </table>
+            <button id="validate_cards"> Validate</button>
+        </div>
+        <div id="matchMakingRoom" style="display: none;">
+            <table id="mmTable">
+                <tr>
+                    <th> Nom </th>
+                    <th> Action</th>
+                </tr>
+
+            </table>
+        </div>
+        <div id="fightArea" style="display: none;">
+            <div id="playerOne">
+                <div class="cards"></div>
+
+            </div>
+            <div id="playerTwo">
+                <div class="cards"></div>
+            </div>
+            <div id="fightLog"></div>
+        </div>
+    </div>
+</section>
+
+<script src="https://code.jquery.com/jquery-1.10.1.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    var socket = io();
+    var pseudo = prompt('Choisissez un pseudo');
+    var currentPlayer = {};
+    var fightArea = {};
+    pseudo = pseudo.replace(/[^a-z0-9]/gi,'');
+    socket.emit('nouveau_client',pseudo);
+    document.title = pseudo + ' - ' + document.title;
+
+    socket.on('nouveau_client',function(user){
+        currentPlayer = user;
+    });
+    socket.on('update_card',function(user){
+        currentPlayer = user;
+        $('#cards_chooser').hide();
+        showMatchMakingRoom();
+
+    });
+
+    var attackCardArray = [];
+    var deffCardArray = [];
+
+    $(".card").on('click', function(){
+        if($(this).hasClass('deff')){
+
+            var defCard = $(this).attr('id');
+            if($.inArray(defCard,deffCardArray) == -1){
+                if (deffCardArray.length < 2){
+                    deffCardArray.push(defCard);
+                    $(this).css('background-color','green');
+                }else{
+                    alert("Max Deff cards choosen");
+                }
+            }else{
+                deffCardArray.splice(deffCardArray.indexOf(defCard),1);
+                $(this).css('background-color','white');
+            }
+
+        }
+        if($(this).hasClass('attack')){
+
+            var attackCard = $(this).attr('id');
+            if($.inArray(attackCard,attackCardArray) == -1){
+                if (attackCardArray.length < 2){
+                    attackCardArray.push(attackCard);
+                    $(this).css('background-color','green');
+                }else{
+                    alert("Max attack cards choosen");
+                }
+            }else{
+                attackCardArray.splice(attackCardArray.indexOf(attackCard),1);
+                $(this).css('background-color','white');
+            }
+
+        }
+    });
+
+    $('#validate_cards').on('click',function(){
+        if(attackCardArray.length == 2 && deffCardArray.length == 2){
+            var player_card_choosen = [attackCardArray,deffCardArray];
+            socket.emit('player_card_choosen',player_card_choosen);
+        }else{
+            alert("Choose 2 cards of each");
+        }
+    });
+    var challanging_player = "";
+function challenge_player(enemy){
+    console.log('clicked');
+    console.log('chalanging' + enemy);
+    socket.emit('fight_player', enemy);
+};
+    socket.on('fight_invitation',function(data){
+        console.log(data);
+        challanging_player = data.challanging_player;
+        var reponse = confirm(data.message);
+
+        if(reponse){
+            fightAnswer('yes');
+        }
+    });
+
+    function showMatchMakingRoom(){
+        socket.emit('askAllPlayers');
+
+        socket.on('getAllPlayers',function(player_registry){
+            console.log(player_registry);
+            $("#mmTable").empty();
+            $.each(player_registry['player_registry'], function(index, item){
+                $("#mmTable").append('' +
+                    '<tr>' +
+                    '<td>'+item.pseudo+'</td>' +
+                    '<td><button onclick="challenge_player(\''+item.pseudo+'\')" class="fight_button" id="player_'+item.pseudo+'">Combattre</button></td>' +
+                    '</tr>')
+            })
+            $('#matchMakingRoom').show();
+        });
+    }
+
+socket.on('fight_start',function(data){
+   alert(data.message);
+   console.log(data);
+    fightArea = data.fightArea;
+   $('#matchMakingRoom').hide();
+    isPlayerOne = false;
+   if(data.fightArea.playerOne.pseudo == pseudo){
+       isPlayerOne = true
+   }
+
+
+   $('#playerOne').append("" +
+       "<h1>"+data.fightArea.playerOne.pseudo+"</h1><div class='playerOne_life'><div class='playerOne_lifeBar'>"+data.fightArea.playerOne.hp+" HP</div></div> <br />");
+
+    if(isPlayerOne == true){
+        $.each(data.fightArea.playerOne.cards,function(index,item){
+            $('#playerOne').append("" +
+                "<button class='playerOnebutton playercard enabled' data-name='"+item.name+"' data-index='"+index+"'>"+item.name+"</button><span class='cd'>CD :"+item.cd+" </span></br>")
+        });
+    }else{
+        $.each(data.fightArea.playerOne.cards,function(index,item){
+            $('#playerOne').append("" +
+                "<span class='playercard' data-name='"+item.name+"'>"+item.name+"</span>CD : "+item.cd+"</br>")
+        });
+    }
+
+    $('#playerTwo').append("" +
+        "<h1>"+data.fightArea.playerTwo.pseudo+"</h1> <div class='playerTwo_life'><div class='playerTwo_lifeBar'>"+data.fightArea.playerTwo.hp+" HP</div></div> <br />");
+
+    if(isPlayerOne == false){
+        $.each(data.fightArea.playerTwo.cards,function(index,item){
+            $('#playerTwo').append("" +
+                "<button class='playerTwobutton playercard disabled' data-name='"+item.name+"' data-index='"+index+"'disabled>"+item.name+"</button> <span class='cd'>CD :"+item.cd+" </span></br>")
+        });
+    }else{
+        $.each(data.fightArea.playerTwo.cards,function(index,item){
+            $('#playerTwo').append("" +
+                "<span class='playercard' data-name='"+item.name+"' >"+item.name+"</span> CD : "+item.cd+"</br>")
+        });
+    }
+
+   $('#fightArea').show();
+});
+
+
+
+    function fightAnswer(data){
+        if(data=='yes'){
+            socket.emit('fight_answer',{answer:'yes',challanging_player:challanging_player});
+        }
+    }
+
+    $(document).on('click','.playercard.enabled', function(){
+        var usedCardName = $(this).attr('data-name');
+        var usedCardIndex = $(this).attr('data-index');
+        var data = {usedCardName : usedCardName,usedCardIndex:usedCardIndex, fightArea:fightArea};
+        console.log(data);
+        socket.emit('fightUpdate',data);
+    });
+
+    socket.on('fightUpdate',function(data){
+        console.log("ok");
+        fightArea = data.fightArea;
+        var myPlayerNumber = ""
+        var enemyPlayerNumber = "";
+        isPlayerOne = false;
+        if(data.fightArea.playerOne.pseudo == pseudo){
+            isPlayerOne = true
+        }
+        $(".playerOnebutton").each(function(){
+            var idx = $(this).attr('data-index');
+            var cd = data.fightArea.playerOne.cards[idx].cd;
+            $(this).closest('.cd').html("CD :"+cd+"");
+            if(data.fightArea.playerOne.canplay == true){
+                $(this).removeAttr('disabled');
+                $(this).removeClass('disabled');
+                $(this).addClass('enabled');
+            }else{
+                $(this).prop('disabled',true);
+                $(this).addClass('disabled');
+                $(this).removeClass('enabled');
+            }
+            if(cd > 0){
+                $(this).prop('disabled',true);
+            }
+        });
+
+        $(".playerTwobutton").each(function(){
+            var idx = $(this).attr('data-index');
+            var cd = data.fightArea.playerTwo.cards[idx].cd;
+            $(this).closest('.cd').html("CD :"+cd+"");
+            if(data.fightArea.playerTwo.canplay == true){
+                $(this).removeAttr('disabled');
+                $(this).removeClass('disabled');
+                $(this).addClass('enabled');
+            }else{
+                $(this).prop('disabled',true);
+                $(this).addClass('disabled');
+                $(this).removeClass('enabled');
+            }
+            if(cd > 0){
+                console.log("cette carte =>> "+data.fightArea.playerTwo.cards[idx].name+" a un cd de "+cd);
+                $(this).prop('disabled',true);
+            }
+
+        });
+
+        $(".playerOne_lifeBar").css('width',data.fightArea.playerOne.hp+"%");
+        $(".playerOne_lifeBar").html(data.fightArea.playerOne.hp+" HP");
+        $(".playerTwo_lifeBar").css('width',data.fightArea.playerTwo.hp+"%");
+        $(".playerTwo_lifeBar").html(data.fightArea.playerTwo.hp+" HP");
+
+        $("#fightLog").append(data.log+"</br>");
+console.log(data);
+    });
+
+    socket.on('fightEnd',function (data) {
+        alert(data.winner.pseudo+" WON");
+        $("#playerOne").hide();
+        $("#playerTwo").hide();
+    })
+</script>
+</body>
+
+</html>
